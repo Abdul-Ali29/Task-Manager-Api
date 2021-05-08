@@ -1,38 +1,16 @@
 const request = require('supertest')
-const jwt = require('jsonwebtoken')
-const mongoose = require('mongoose')
 const app = require('../src/app')
 const User = require('../src/models/user')
+const { userOneId, userOne, setupDatabase } = require('./fixtures/db')
 
-
-
-
-const userOneId = new mongoose.Types.ObjectId()
-const userOne = {
-    _id: userOneId,
-    name: 'Jotaro Kujo',
-    email: 'Rashidah@example.com',
-    password: 'Hithere321!',
-    tokens: [{
-        token: jwt.sign({_id: userOneId,}, process.env.JWT_SECRET)
-    }]
-}
-
-
-
-
-
-
-beforeEach(async () => {
-    await User.deleteMany()
-    await new User(userOne).save()    
-})
+beforeEach(setupDatabase)
 
 
 
 test('Should sign up a new user', async () => {
-    const response = await request(app).post('/users').send({
-        name: 'jAbdul',
+    const response = await request(app).post('/users')
+    .send({
+        name: 'jAbdul', 
         email: 'jabdul@example.com',
         password: 'jinguini777!'
     }).expect(201)
@@ -53,7 +31,9 @@ test('Should sign up a new user', async () => {
 })
 
 test('Should login existing user', async () => {
-    const response = await request(app).post('/users/login').send({
+    const response = await request(app)
+    .post('/users/login')
+    .send({
         email: userOne.email,
         password: userOne.password
     }).expect(200)
@@ -76,7 +56,8 @@ test('Should get profile for user', async () => {
     await request(app)
     .get('/users/me')
     .set('Authorization', `Bearer ${userOne.tokens[0].token}`)
-    .send().expect(200)
+    .send()
+    .expect(200)
 })
 
 test('Should not get profile for unauthenticated user', async () => {
@@ -130,7 +111,7 @@ test('Should update valid user fields', async () => {
     expect(user.name).toEqual('Rohan Kishibe')
 })
 
-test('Should note update invalid fields', async () => {
+test('Should not update invalid fields', async () => {
     await request (app)
     .patch('/users/me')
     .set('Authorization', `Bearer ${userOne.tokens[0].token}`)
@@ -139,3 +120,4 @@ test('Should note update invalid fields', async () => {
     })
     .expect(400)
 })
+
